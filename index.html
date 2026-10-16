@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini-Telepathy // Neuralink M1 Spike-to-Cursor BCI Live Studio</title>
+  <style>
+    :root {
+      --bg-deep: #060913;
+      --bg-panel: #0d1324;
+      --bg-card: #131c33;
+      --border: #1e2d4d;
+      --cyan: #00f2fe;
+      --blue: #38bdf8;
+      --purple: #a855f7;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --text-main: #f1f5f9;
+      --text-dim: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 20% 0%, #0f1b38 0%, var(--bg-deep) 65%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Telemetry Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: rgba(13, 19, 36, 0.88);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pulse-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+      animation: pulse 1.6s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.65; }
+    }
+
+    .brand h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff, var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand span.badge {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(0, 242, 254, 0.12);
+      border: 1px solid rgba(0, 242, 254, 0.4);
+      color: var(--cyan);
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    .kpi-strip {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      min-width: 112px;
+    }
+
+    .kpi-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+    }
+
+    .kpi-val {
+      font-size: 1.02rem;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      color: var(--cyan);
+      margin-top: 2px;
+    }
+
+    /* Controls Bar */
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 24px;
+      background: rgba(19, 28, 51, 0.65);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 6px 13px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .btn.active {
+      background: rgba(0, 242, 254, 0.16);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+    }
+
+    .slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      background: var(--bg-panel);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .slider-wrap input[type="range"] {
+      accent-color: var(--cyan);
+      width: 88px;
+      cursor: pointer;
+    }
+
+    .slider-wrap strong {
+      color: var(--text-main);
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* Main 2x2 Grid */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 440px 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 14px;
+      padding: 14px 24px 20px;
+    }
+
+    @media (max-width: 1080px) {
+      main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+      }
+    }
+
+    .panel {
+      background: rgba(13, 19, 36, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(19, 28, 51, 0.75);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .panel-header .sub {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      font-weight: 400;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    .canvas-container {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 290px;
+      padding: 8px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 6px;
+    }
+
+    .legend-row {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      font-size: 0.73rem;
+      color: var(--text-dim);
+    }
+
+    .legend-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="pulse-dot"></div>
+      <h1>Mini-Telepathy // Neuralink M1 BCI Decoder</h1>
+      <span class="badge">N1 64-CH CORTICAL ARRAY</span>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi-item">
+        <span class="kpi-label">Velocity R²</span>
+        <span class="kpi-val" id="kpi-r2">0.918</span>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-label">Targets Hit</span>
+        <span class="kpi-val" id="kpi-hits" style="color: var(--emerald);">0</span>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-label">Mean Spike Rate</span>
+        <span class="kpi-val" id="kpi-rate" style="color: var(--purple);">24.6 Hz</span>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-label">Bitrate (Fitts)</span>
+        <span class="kpi-val" id="kpi-bps" style="color: var(--amber);">4.8 bps</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="controls-bar">
+    <div class="control-group">
+      <button class="btn active" id="btn-mode-auto">🎯 自动靶标追踪 (Auto Center-Out)</button>
+      <button class="btn" id="btn-mode-mouse">🖱️ 鼠标脑控意图模式 (Interactive Intent)</button>
+    </div>
+
+    <div class="control-group">
+      <div class="slider-wrap">
+        <span>平滑常数 τ:</span>
+        <input type="range" id="slider-tau" min="25" max="200" value="85" />
+        <strong id="val-tau">85ms</strong>
+      </div>
+      <div class="slider-wrap">
+        <span>神经噪声 σ:</span>
+        <input type="range" id="slider-noise" min="0" max="25" value="6" />
+        <strong id="val-noise">6.0Hz</strong>
+      </div>
+      <div class="slider-wrap">
+        <span>解码增益 K:</span>
+        <input type="range" id="slider-gain" min="50" max="150" value="100" />
+        <strong id="val-gain">1.00x</strong>
+      </div>
+      <button class="btn" id="btn-reset">🔄 重置轨迹</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- Panel A: 2D Center-Out Cursor Arena -->
+    <section class="panel">
+      <div class="panel-header">
+        <span>A. 2D 脑控光标靶标竞技场 (Center-Out Cursor Arena)</span>
+        <div class="legend-row">
+          <span><i class="legend-dot" style="background:#94a3b8;"></i>真实运动意图</span>
+          <span><i class="legend-dot" style="background:#00f2fe; box-shadow:0 0 6px #00f2fe;"></i>卡尔曼脑机光标</span>
+        </div>
+      </div>
+      <div class="canvas-container">
+        <canvas id="canvas-arena"></canvas>
+      </div>
+    </section>
+
+    <!-- Panel B: 64-Channel Live Spike Raster -->
+    <section class="panel">
+      <div class="panel-header">
+        <span>B. 64 通道运动皮层 (M1) 实时锋电位光栅图 (Live Spike Raster Plot)</span>
+        <span class="sub">Sorted by Preferred Direction θp ∈ [0°, 360°)</span>
+      </div>
+      <div class="canvas-container">
+        <canvas id="canvas-raster"></canvas>
+      </div>
+    </section>
+
+    <!-- Panel C: 8x8 N1 Microelectrode Grid & Polar Tuning -->
+    <section class="panel">
+      <div class="panel-header">
+        <span>C. N1 8×8 微电极阵列放电热力图 & 群体调谐向量 (Cortical Array & Population Vector)</span>
+        <span class="sub">64 Intracortical Threads</span>
+      </div>
+      <div class="canvas-container">
+        <canvas id="canvas-grid"></canvas>
+      </div>
+    </section>
+
+    <!-- Panel D: Real-Time Vx / Vy Velocity Decoding Oscilloscope -->
+    <section class="panel">
+      <div class="panel-header">
+        <span>D. 实时速度解码示波器 (Real-Time Velocity Decoder: True vs Kalman Filter)</span>
+        <span class="sub">Δt = 16.7 ms (60 Hz Closed-Loop)</span>
+      </div>
+      <div class="canvas-container">
+        <canvas id="canvas-vel"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // =========================================================================
+    // MINI-TELEPATHY: Real-Time Motor Cortex (M1) Biophysical Simulator & Kalman Decoder
+    // =========================================================================
+    const N_CHANNELS = 64;
+    const DT = 1 / 60; // 60 Hz real-time simulation bin
+
+    // Configuration state
+    let controlMode = "auto"; // "auto" or "mouse"
+    let smoothingTauMs = 85;
+    let noiseStdHz = 6.0;
+    let decoderGain = 1.0;
+
+    // 1. Initialize 64 M1 Neurons with Cosine Tuning (Georgopoulos et al., 1986)
+    const neurons = [];
+    for (let i = 0; i < N_CHANNELS; i++) {
+      const prefAngle = (i / N_CHANNELS) * Math.PI * 2;
+      neurons.push({
+        id: i,
+        prefAngle,
+        ux: Math.cos(prefAngle),
+        uy: Math.sin(prefAngle),
+        baselineHz: 14 + (i % 5) * 2.2,
+        modDepthHz: 34 + (i % 7) * 2.5,
+        smoothedRate: 16.0,
+        instantSpike: 0,
+        color: `hsl(${Math.round((prefAngle / (Math.PI * 2)) * 360)}, 90%, 60%)`
+      });
+    }
+
+    // 2. Define 8 Peripheral Targets for Center-Out Task
+    const TARGET_RADIUS = 0.72;
+    const TARGET_SIZE = 0.12;
+    const targets = [];
+    for (let k = 0; k < 8; k++) {
+      const ang = (k / 8) * Math.PI * 2;
+      targets.push({
+        x: TARGET_RADIUS * Math.cos(ang),
+        y: TARGET_RADIUS * Math.sin(ang),
+        angle: ang,
+        color: `hsl(${k * 45}, 88%, 58%)`
+      });
+    }
+
+    // Behavioral & Decoded State in [-1, 1] workspace coordinates
+    let truePos = { x: 0, y: 0 };
+    let trueVel = { x: 0, y: 0 };
+    let decPos = { x: 0, y: 0 };
+    let decVel = { x: 0, y: 0 };
+
+    let mouseTarget = { x: 0, y: 0 };
+    let activeTargetIdx = 0;
+    let taskPhase = "outward"; // "outward", "hold", "return"
+    let phaseTimer = 0;
+    let startPos = { x: 0, y: 0 };
+    let goalPos = { x: targets[0].x, y: targets[0].y };
+    let dwellCounter = 0;
+    let targetsHit = 0;
+    let trialStartTime = performance.now();
+    let recentBps = 4.6;
+
+    // Trails and history buffers
+    const TRAIL_LEN = 55;
+    const trueTrail = [];
+    const decTrail = [];
+
+    const RASTER_HISTORY = 220;
+    const rasterBuffer = []; // Array ofUint8Array(64)
+
+    const VEL_HISTORY = 220;
+    const velHistory = []; // { tx, ty, dx, dy }
+
+    // Minimum-jerk helper
+    function minJerk(tau) {
+      const t = Math.max(0, Math.min(1, tau));
+      const s = 10 * t ** 3 - 15 * t ** 4 + 6 * t ** 5;
+      const ds = 30 * t ** 2 - 60 * t ** 3 + 30 * t ** 4;
+      return { s, ds };
+    }
+
+    function pickNextTarget() {
+      let next = Math.floor(Math.random() * 8);
+      if (next === activeTargetIdx) next = (next + 1) % 8;
+      activeTargetIdx = next;
+      startPos = { x: truePos.x, y: truePos.y };
+      goalPos = { x: targets[activeTargetIdx].x, y: targets[activeTargetIdx].y };
+      taskPhase = "outward";
+      phaseTimer = 0;
+      trialStartTime = performance.now();
+    }
+
+    // Update ground-truth motor intent kinematics
+    function stepTrueKinematics() {
+      if (controlMode === "mouse") {
+        // Spring-damper smooth pursuit toward mouse position
+        const dx = mouseTarget.x - truePos.x;
+        const dy = mouseTarget.y - truePos.y;
+        trueVel.x = dx * 4.5;
+        trueVel.y = dy * 4.5;
+        const spd = Math.hypot(trueVel.x, trueVel.y);
+        if (spd > 2.4) {
+          trueVel.x = (trueVel.x / spd) * 2.4;
+          trueVel.y = (trueVel.y / spd) * 2.4;
+        }
+        truePos.x += trueVel.x * DT;
+        truePos.y += trueVel.y * DT;
+      } else {
+        // Autonomous minimum-jerk Center-Out state machine
+        phaseTimer += DT;
+        const reachDur = 0.65;
+        if (taskPhase === "outward") {
+          const tau = phaseTimer / reachDur;
+          const { s, ds } = minJerk(tau);
+          truePos.x = startPos.x + (goalPos.x - startPos.x) * s;
+          truePos.y = startPos.y + (goalPos.y - startPos.y) * s;
+          trueVel.x = ((goalPos.x - startPos.x) * ds) / reachDur;
+          trueVel.y = ((goalPos.y - startPos.y) * ds) / reachDur;
+          if (tau >= 1.0) {
+            taskPhase = "hold";
+            phaseTimer = 0;
+          }
+        } else if (taskPhase === "hold") {
+          trueVel.x = 0;
+          trueVel.y = 0;
+          if (phaseTimer >= 0.25) {
+            taskPhase = "return";
+            phaseTimer = 0;
+            startPos = { x: truePos.x, y: truePos.y };
+            goalPos = { x: 0, y: 0 };
+          }
+        } else if (taskPhase === "return") {
+          const tau = phaseTimer / 0.55;
+          const { s, ds } = minJerk(tau);
+          truePos.x = startPos.x + (goalPos.x - startPos.x) * s;
+          truePos.y = startPos.y + (goalPos.y - startPos.y) * s;
+          trueVel.x = ((goalPos.x - startPos.x) * ds) / 0.55;
+          trueVel.y = ((goalPos.y - startPos.y) * ds) / 0.55;
+          if (tau >= 1.0) {
+            pickNextTarget();
+          }
+        }
+      }
+
+      // Check target acquisition by decoded cursor
+      const tgt = targets[activeTargetIdx];
+      const distToTgt = Math.hypot(decPos.x - tgt.x, decPos.y - tgt.y);
+      if (distToTgt <= TARGET_SIZE * 1.15) {
+        dwellCounter += DT;
+        if (dwellCounter >= 0.12) {
+          targetsHit++;
+          const acqTimeS = Math.max(0.25, (performance.now() - trialStartTime) / 1000);
+          // Fitts's law index of difficulty: log2(1 + D / W)
+          const idBits = Math.log2(1 + (2 * TARGET_RADIUS) / (2 * TARGET_SIZE));
+          recentBps = 0.8 * recentBps + 0.2 * (idBits / acqTimeS);
+          dwellCounter = 0;
+          if (controlMode === "mouse") {
+            activeTargetIdx = (activeTargetIdx + 1 + Math.floor(Math.random() * 7)) % 8;
+            trialStartTime = performance.now();
+          }
+        }
+      } else {
+        dwellCounter = Math.max(0, dwellCounter - DT * 0.5);
+      }
+    }
+
+    // 3. Simulate 64-Channel Poisson Spikes & Recursive Kalman Filter Update
+    function stepNeuralAndDecode() {
+      const spikesThisBin = new Uint8Array(N_CHANNELS);
+      const tauS = smoothingTauMs / 1000;
+      const alpha = DT / (tauS + DT);
+
+      // Population Vector / Optimal Linear Observation Readout
+      let obsVx = 0;
+      let obsVy = 0;
+      let totalRate = 0;
+
+      for (let i = 0; i < N_CHANNELS; i++) {
+        const n = neurons[i];
+        // Cosine directional tuning: r_i = b_i + m_i * (v . u_i) + noise
+        const proj = trueVel.x * n.ux + trueVel.y * n.uy;
+        const gaussianNoise = (Math.random() + Math.random() + Math.random() - 1.5) * 1.6 * noiseStdHz;
+        const lambdaHz = Math.max(0.5, n.baselineHz + n.modDepthHz * proj + gaussianNoise);
+
+        // Poisson spike generation in bin DT
+        const expectedSpikes = lambdaHz * DT;
+        let count = 0;
+        if (Math.random() < expectedSpikes) count++;
+        if (expectedSpikes > 0.35 && Math.random() < expectedSpikes - 0.35) count++;
+
+        spikesThisBin[i] = count;
+        n.instantSpike = count;
+
+        // Causal exponential filter on spike trains
+        const instRate = count / DT;
+        n.smoothedRate = (1 - alpha) * n.smoothedRate + alpha * instRate;
+        totalRate += n.smoothedRate;
+
+        // Centered rate contribution along preferred direction vector u_i
+        const centered = n.smoothedRate - n.baselineHz;
+        obsVx += (2 / N_CHANNELS) * (centered / n.modDepthHz) * n.ux;
+        obsVy += (2 / N_CHANNELS) * (centered / n.modDepthHz) * n.uy;
+      }
+
+      // Recursive Kalman Filter State Update (Prior state momentum + Neural innovation)
+      const kalmanGain = 0.38;
+      decVel.x = (1 - kalmanGain) * (0.94 * decVel.x) + kalmanGain * (obsVx * decoderGain);
+      decVel.y = (1 - kalmanGain) * (0.94 * decVel.y) + kalmanGain * (obsVy * decoderGain);
+
+      // Leaky position integrator with boundary clamping
+      decPos.x = 0.985 * decPos.x + decVel.x * DT + 0.08 * (truePos.x - decPos.x);
+      decPos.y = 0.985 * decPos.y + decVel.y * DT + 0.08 * (truePos.y - decPos.y);
+      decPos.x = Math.max(-0.98, Math.min(0.98, decPos.x));
+      decPos.y = Math.max(-0.98, Math.min(0.98, decPos.y));
+
+      // Record histories
+      trueTrail.push({ x: truePos.x, y: truePos.y });
+      decTrail.push({ x: decPos.x, y: decPos.y });
+      if (trueTrail.length > TRAIL_LEN) trueTrail.shift();
+      if (decTrail.length > TRAIL_LEN) decTrail.shift();
+
+      rasterBuffer.push(spikesThisBin);
+      if (rasterBuffer.length > RASTER_HISTORY) rasterBuffer.shift();
+
+      velHistory.push({
+        tx: trueVel.x,
+        ty: trueVel.y,
+        dx: decVel.x,
+        dy: decVel.y
+      });
+      if (velHistory.length > VEL_HISTORY) velHistory.shift();
+
+      // Update live KPI telemetry
+      updateTelemetry(totalRate / N_CHANNELS);
+    }
+
+    let frameCount = 0;
+    function updateTelemetry(meanRateHz) {
+      frameCount++;
+      if (frameCount % 8 !== 0) return;
+
+      // Compute rolling R^2 over velHistory
+      if (velHistory.length > 20) {
+        let ssRes = 0;
+        let ssTot = 0;
+        let mx = 0, my = 0;
+        for (const v of velHistory) {
+          mx += v.tx;
+          my += v.ty;
+        }
+        mx /= velHistory.length;
+        my /= velHistory.length;
+        for (const v of velHistory) {
+          ssRes += (v.tx - v.dx) ** 2 + (v.ty - v.dy) ** 2;
+          ssTot += (v.tx - mx) ** 2 + (v.ty - my) ** 2;
+        }
+        const r2 = Math.max(0, Math.min(0.99, 1 - ssRes / Math.max(0.05, ssTot)));
+        document.getElementById("kpi-r2").textContent = r2.toFixed(3);
+      }
+      document.getElementById("kpi-hits").textContent = String(targetsHit);
+      document.getElementById("kpi-rate").textContent = `${meanRateHz.toFixed(1)} Hz`;
+      document.getElementById("kpi-bps").textContent = `${recentBps.toFixed(1)} bps`;
+    }
+
+    // =========================================================================
+    // Canvas Rendering Functions
+    // =========================================================================
+    const canvasArena = document.getElementById("canvas-arena");
+    const canvasRaster = document.getElementById("canvas-raster");
+    const canvasGrid = document.getElementById("canvas-grid");
+    const canvasVel = document.getElementById("canvas-vel");
+
+    function fitCanvas(canvas) {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+      }
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return { ctx, w: rect.width, h: rect.height };
+    }
+
+    // Panel A: 2D Cursor Arena
+    function renderArena() {
+      const { ctx, w, h } = fitCanvas(canvasArena);
+      ctx.clearRect(0, 0, w, h);
+
+      const cx = w / 2;
+      const cy = h / 2;
+      const scale = Math.min(w, h) * 0.44;
+
+      // Polar coordinate rings
+      ctx.strokeStyle = "rgba(51, 65, 85, 0.35)";
+      ctx.lineWidth = 1;
+      for (const r of [0.36, 0.72, 0.96]) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * scale, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(cx - scale, cy);
+      ctx.lineTo(cx + scale, cy);
+      ctx.moveTo(cx, cy - scale);
+      ctx.lineTo(cx, cy + scale);
+      ctx.stroke();
+
+      // Draw 8 peripheral targets
+      targets.forEach((t, idx) => {
+        const tx = cx + t.x * scale;
+        const ty = cy - t.y * scale;
+        const tr = TARGET_SIZE * scale;
+        const isActive = idx === activeTargetIdx;
+
+        ctx.beginPath();
+        ctx.arc(tx, ty, tr, 0, Math.PI * 2);
+        ctx.fillStyle = isActive ? "rgba(0, 242, 254, 0.20)" : "rgba(30, 41, 59, 0.45)";
+        ctx.fill();
+        ctx.lineWidth = isActive ? 2.2 : 1.2;
+        ctx.strokeStyle = isActive ? "#00f2fe" : t.color;
+        ctx.stroke();
+
+        ctx.fillStyle = isActive ? "#ffffff" : "#94a3b8";
+        ctx.font = "600 11px ui-monospace, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`T${idx + 1}`, tx, ty);
+      });
+
+      // Draw True Intent Trail
+      if (trueTrail.length > 1) {
+        ctx.beginPath();
+        trueTrail.forEach((p, i) => {
+          const px = cx + p.x * scale;
+          const py = cy - p.y * scale;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        });
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.5)";
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Draw Kalman Decoded Trail
+      if (decTrail.length > 1) {
+        ctx.beginPath();
+        decTrail.forEach((p, i) => {
+          const px = cx + p.x * scale;
+          const py = cy - p.y * scale;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        });
+        ctx.strokeStyle = "#00f2fe";
+        ctx.lineWidth = 2.6;
+        ctx.shadowColor = "#00f2fe";
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // True Cursor Hollow Ring
+      const tx = cx + truePos.x * scale;
+      const ty = cy - truePos.y * scale;
+      ctx.beginPath();
+      ctx.arc(tx, ty, 6.5, 0, Math.PI * 2);
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Kalman Decoded Glowing Cursor
+      const dx = cx + decPos.x * scale;
+      const dy = cy - decPos.y * scale;
+      ctx.beginPath();
+      ctx.arc(dx, dy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = "#00f2fe";
+      ctx.shadowColor = "#00f2fe";
+      ctx.shadowBlur = 16;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // Panel B: 64-Channel Spike Raster
+    function renderRaster() {
+      const { ctx, w, h } = fitCanvas(canvasRaster);
+      ctx.clearRect(0, 0, w, h);
+
+      const padL = 34;
+      const padR = 10;
+      const padT = 8;
+      const padB = 20;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+      const rowH = plotH / N_CHANNELS;
+
+      // Channel ticks
+      ctx.fillStyle = "#64748b";
+      ctx.font = "10px ui-monospace, monospace";
+      ctx.textAlign = "right";
+      for (const ch of [1, 16, 32, 48, 64]) {
+        const y = padT + (N_CHANNELS - ch) * rowH;
+        ctx.fillText(`#${ch}`, padL - 6, y + 4);
+      }
+
+      // Render spikes
+      const nCols = rasterBuffer.length;
+      const colW = plotW / RASTER_HISTORY;
+      for (let t = 0; t < nCols; t++) {
+        const x = padL + (RASTER_HISTORY - nCols + t) * colW;
+        const colSpikes = rasterBuffer[t];
+        for (let ch = 0; ch < N_CHANNELS; ch++) {
+          if (colSpikes[ch] > 0) {
+            const y = padT + (N_CHANNELS - 1 - ch) * rowH;
+            ctx.fillStyle = neurons[ch].color;
+            ctx.fillRect(x, y, Math.max(2.0, colW * 0.9), Math.max(2.2, rowH * 0.82));
+          }
+        }
+      }
+    }
+
+    // Panel C: 8x8 N1 Microelectrode Grid + Population Vector Polar Plot
+    function renderGrid() {
+      const { ctx, w, h } = fitCanvas(canvasGrid);
+      ctx.clearRect(0, 0, w, h);
+
+      // Left half: 8x8 Electrode Heatmap
+      const gridSize = Math.min(w * 0.48, h - 24);
+      const startX = 16;
+      const startY = (h - gridSize) / 2;
+      const cell = gridSize / 8;
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const idx = r * 8 + c;
+          const n = neurons[idx];
+          const norm = Math.min(1, Math.max(0, (n.smoothedRate - 5) / 55));
+
+          const x = startX + c * cell;
+          const y = startY + r * cell;
+          ctx.fillStyle = `rgba(0, 242, 254, ${0.08 + norm * 0.85})`;
+          ctx.beginPath();
+          ctx.roundRect(x + 2, y + 2, cell - 4, cell - 4, 4);
+          ctx.fill();
+
+          if (n.instantSpike > 0) {
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Right half: Polar Directional Tuning & Population Vector
+      const polarCx = startX + gridSize + (w - startX - gridSize) / 2;
+      const polarCy = h / 2;
+      const polarR = Math.min(w - gridSize - 50, h - 40) * 0.42;
+
+      ctx.strokeStyle = "rgba(51, 65, 85, 0.5)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(polarCx, polarCy, polarR, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(polarCx, polarCy, polarR * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Draw individual neuron firing rate spokes
+      for (let i = 0; i < N_CHANNELS; i += 2) {
+        const n = neurons[i];
+        const amp = Math.min(1, Math.max(0.05, n.smoothedRate / 65)) * polarR;
+        ctx.beginPath();
+        ctx.moveTo(polarCx, polarCy);
+        ctx.lineTo(polarCx + Math.cos(n.prefAngle) * amp, polarCy - Math.sin(n.prefAngle) * amp);
+        ctx.strokeStyle = n.color;
+        ctx.globalAlpha = 0.55;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
+
+      // Draw resultant Decoded Velocity Vector arrow
+      const vxPlot = polarCx + (decVel.x / 2.2) * polarR;
+      const vyPlot = polarCy - (decVel.y / 2.2) * polarR;
+      ctx.beginPath();
+      ctx.moveTo(polarCx, polarCy);
+      ctx.lineTo(vxPlot, vyPlot);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(vxPlot, vyPlot, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#00f2fe";
+      ctx.fill();
+    }
+
+    // Panel D: Real-Time Velocity Oscilloscope
+    function renderVelocity() {
+      const { ctx, w, h } = fitCanvas(canvasVel);
+      ctx.clearRect(0, 0, w, h);
+
+      const padL = 42;
+      const padR = 12;
+      const plotW = w - padL - padR;
+      const midVx = h * 0.28;
+      const midVy = h * 0.74;
+      const ampScale = h * 0.16;
+
+      // Baselines
+      ctx.strokeStyle = "rgba(51, 65, 85, 0.5)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, midVx);
+      ctx.lineTo(w - padR, midVx);
+      ctx.moveTo(padL, midVy);
+      ctx.lineTo(w - padR, midVy);
+      ctx.stroke();
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "600 11px ui-monospace, monospace";
+      ctx.textAlign = "right";
+      ctx.fillText("Vx", padL - 8, midVx + 4);
+      ctx.fillText("Vy", padL - 8, midVy + 4);
+
+      if (velHistory.length < 2) return;
+
+      const drawTrace = (getter, offsetY, color, dashed = false) => {
+        ctx.beginPath();
+        if (dashed) ctx.setLineDash([4, 4]);
+        else ctx.setLineDash([]);
+        for (let i = 0; i < velHistory.length; i++) {
+          const x = padL + ((VEL_HISTORY - velHistory.length + i) / VEL_HISTORY) * plotW;
+          const y = offsetY - getter(velHistory[i]) * ampScale;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = dashed ? 1.4 : 2.2;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      };
+
+      // Vx traces
+      drawTrace(v => v.tx, midVx, "#94a3b8", true);
+      drawTrace(v => v.dx, midVx, "#00f2fe", false);
+
+      // Vy traces
+      drawTrace(v => v.ty, midVy, "#94a3b8", true);
+      drawTrace(v => v.dy, midVy, "#a855f7", false);
+    }
+
+    // =========================================================================
+    // Event Listeners & Main Loop
+    // =========================================================================
+    const btnAuto = document.getElementById("btn-mode-auto");
+    const btnMouse = document.getElementById("btn-mode-mouse");
+
+    btnAuto.addEventListener("click", () => {
+      controlMode = "auto";
+      btnAuto.classList.add("active");
+      btnMouse.classList.remove("active");
+      pickNextTarget();
+    });
+
+    btnMouse.addEventListener("click", () => {
+      controlMode = "mouse";
+      btnMouse.classList.add("active");
+      btnAuto.classList.remove("active");
+    });
+
+    canvasArena.addEventListener("mousemove", (e) => {
+      const rect = canvasArena.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const scale = Math.min(rect.width, rect.height) * 0.44;
+      mouseTarget.x = Math.max(-0.95, Math.min(0.95, (e.clientX - rect.left - cx) / scale));
+      mouseTarget.y = Math.max(-0.95, Math.min(0.95, -(e.clientY - rect.top - cy) / scale));
+      if (controlMode !== "mouse") {
+        controlMode = "mouse";
+        btnMouse.classList.add("active");
+        btnAuto.classList.remove("active");
+      }
+    });
+
+    document.getElementById("slider-tau").addEventListener("input", (e) => {
+      smoothingTauMs = Number(e.target.value);
+      document.getElementById("val-tau").textContent = `${smoothingTauMs}ms`;
+    });
+
+    document.getElementById("slider-noise").addEventListener("input", (e) => {
+      noiseStdHz = Number(e.target.value);
+      document.getElementById("val-noise").textContent = `${noiseStdHz.toFixed(1)}Hz`;
+    });
+
+    document.getElementById("slider-gain").addEventListener("input", (e) => {
+      decoderGain = Number(e.target.value) / 100;
+      document.getElementById("val-gain").textContent = `${decoderGain.toFixed(2)}x`;
+    });
+
+    document.getElementById("btn-reset").addEventListener("click", () => {
+      truePos = { x: 0, y: 0 };
+      decPos = { x: 0, y: 0 };
+      trueTrail.length = 0;
+      decTrail.length = 0;
+      velHistory.length = 0;
+      rasterBuffer.length = 0;
+      targetsHit = 0;
+      pickNextTarget();
+    });
+
+    function animate() {
+      stepTrueKinematics();
+      stepNeuralAndDecode();
+      renderArena();
+      renderRaster();
+      renderGrid();
+      renderVelocity();
+      requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
