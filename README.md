@@ -67,12 +67,12 @@ pip install -r requirements.txt
 python demo.py
 ```
 
-终端将输出留出测试集（Held-Out Test Split）的定量性能对比：
+终端将输出留出测试集（Held-Out Test Split）的定量性能对比。下表来自 `python demo.py` 的一次本机仿真运行（随机种子 `42`）；完整结果见 [`assets/benchmark_summary.txt`](assets/benchmark_summary.txt)。延迟随硬件与运行环境变化。
 
 | Decoder Algorithm | Vel $R^2$ | Pos $R^2$ | Pearson $r$ | Vel RMSE | Latency / bin |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Kalman Filter (State-Space)** | **~0.91** | **~0.93** | **~0.95** | **~0.28** | **~25 µs** |
-| **Ridge OLE (5-Lag Wiener)** | ~0.87 | ~0.88 | ~0.93 | ~0.34 | ~15 µs |
+| **Kalman Filter (State-Space)** | 0.728 | 0.645 | 0.865 | 0.490 | 26.7 µs |
+| **Ridge OLE (5-Lag Wiener)** | 0.953 | 0.200 | 0.977 | 0.203 | 4.7 µs |
 
 ### 2. 零依赖网页实时交互台（推荐）
 直接用浏览器打开仓库根目录下的 [`index.html`](index.html)（或者将仓库推送到 GitHub 后开启 **GitHub Pages**）：

@@ -1,0 +1,4 @@
+Decoder Algorithm              |  Vel R² |  Pos R² | Pearson r | Vel RMSE |  Latency/bin
+----------------------------------------------------------------------------------------
+Kalman Filter (State-Space)    |   0.728 |   0.645 |     0.865 |    0.490 |      26.7 µs
+Ridge OLE (5-Lag Wiener)       |   0.953 |   0.200 |     0.977 |    0.203 |       4.7 µs
